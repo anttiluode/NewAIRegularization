@@ -1,5 +1,7 @@
 # Surface Tension Learning
 
+(Pure vibecoding, supposedly works. Supposedly - Antti)
+
 **Laplacian Regularization for Neural Networks**
 
 *Biologically-inspired regularization that improves both training and test accuracy*
