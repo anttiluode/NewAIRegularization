@@ -4,7 +4,6 @@
 
 *Biologically-inspired regularization that improves both training and test accuracy*
 
-[![Paper](https://img.shields.io/badge/Paper-PDF-red)](docs/surface_tension_learning_paper.pdf)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 🎯 Key Result
@@ -64,6 +63,28 @@ for W in model.weights:
     W.grad += lambda_reg * laplacian_gradient(W)
 ```
 
+## 📁 Repository Structure
+
+```
+NewAIRegularization/
+├── LICENSE
+├── README.md
+├── cifar_nobel_for_claude.py      # Main experiment code
+├── cifar10_laplacian_results.json # Experimental results
+└── surface_tension_learning_paper.docx  # Full paper
+```
+
+## 🏃 Running the Experiment
+
+```bash
+# Clone the repo
+git clone https://github.com/anttiluode/NewAIRegularization.git
+cd NewAIRegularization
+
+# Run CIFAR-10 experiment (downloads data automatically)
+python cifar_nobel_for_claude.py
+```
+
 ## 📊 Results
 
 ### CIFAR-10 (10k train, 2k test, MLP 3072→512→256→10)
@@ -95,46 +116,6 @@ The signature of surface minimization is:
 - Phase transition at χ ≈ 0.83
 
 Our Laplacian regularization is the discrete analog of **mean curvature flow**, the same mathematical operation that produces minimal surfaces.
-
-## 📁 Repository Structure
-
-```
-surface-tension-learning/
-├── README.md
-├── LICENSE
-├── requirements.txt
-├── src/
-│   ├── laplacian.py          # Core Laplacian operations
-│   ├── models.py             # MLP with Laplacian regularization
-│   └── train.py              # Training loop
-├── experiments/
-│   ├── cifar10_experiment.py # Main CIFAR-10 experiment
-│   └── synthetic_tests.py    # XOR, Circles, Digits
-├── notebooks/
-│   └── analysis.ipynb        # Result visualization
-├── results/
-│   └── cifar10_results.json  # Experimental results
-└── docs/
-    └── paper.pdf             # Full paper
-```
-
-## 🔧 Installation
-
-```bash
-git clone https://github.com/anttiluode/surface-tension-learning.git
-cd surface-tension-learning
-pip install -r requirements.txt
-```
-
-## 🏃 Running Experiments
-
-```bash
-# CIFAR-10 experiment
-python experiments/cifar10_experiment.py
-
-# Quick synthetic test
-python experiments/synthetic_tests.py
-```
 
 ## 📈 PyTorch Implementation
 
