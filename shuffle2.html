@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surface Tension: The Shuffle Test (Calibrated)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.15.0/tf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            background: #0f0f15;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #81c784; margin-bottom: 5px; }
+        .subtitle { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        
+        .controls {
+            background: #1a1a24;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #2a3a5a;
+            color: white;
+            border: 1px solid #4a5a7a;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        button:hover { background: #3a4a6a; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="checkbox"] { transform: scale(1.5); }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+        
+        .panel {
+            background: #1a1a24;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+        
+        .panel h3 { margin-top: 0; color: #aaa; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        
+        canvas { width: 100%; }
+        
+        .stat-box {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+        .val-l2 { color: #ff6b6b; }
+        .val-lap { color: #4ecdc4; }
+    </style>
+</head>
+<body>
+
+    <h1>Surface Tension: The Shuffle Test (Calibrated)</h1>
+    <div class="subtitle">Proof of Physics: Surface Tension should win on Structure, fail on Shuffle.</div>
+
+    <div class="controls">
+        <div class="toggle-container">
+            <input type="checkbox" id="shuffleToggle">
+            <label for="shuffleToggle">🔥 SHUFFLE PIXELS (Destroy Geometry)</label>
+        </div>
+        <button id="btnRun" onclick="runExperiment()">RUN EXPERIMENT</button>
+        <span id="status">Ready</span>
+    </div>
+
+    <div class="dashboard">
+        <div class="panel">
+            <h3>Input View (What the AI Sees)</h3>
+            <canvas id="inputCanvas" width="16" height="16" style="width: 256px; height: 256px; image-rendering: pixelated; margin: 0 auto; display: block; border: 1px solid #444;"></canvas>
+            <div style="text-align: center; margin-top: 10px; color: #888;">16x16 Patterns (With Noise)</div>
+        </div>
+
+        <div class="panel">
+            <h3>Live Accuracy</h3>
+            <div class="stat-box">
+                <span>Standard (L2):</span>
+                <span id="acc-l2" class="val-l2">0.0%</span>
+            </div>
+            <div class="stat-box">
+                <span>Surface Tension (Lap):</span>
+                <span id="acc-lap" class="val-lap">0.0%</span>
+            </div>
+            <div style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                <b>Parameters:</b><br>
+                Laplacian λ = 0.0001 (Calibrated)<br>
+                L2 λ = 0.001<br>
+                Samples = 200 (Harder Task)
+            </div>
+        </div>
+
+        <div class="panel" style="grid-column: span 2;">
+            <h3>Training Dynamics</h3>
+            <canvas id="chartCanvas" height="100"></canvas>
+        </div>
+    </div>
+
+<script>
+// ==========================================
+// 1. DATA GENERATION (Harder Task)
+// ==========================================
+const SIZE = 16;
+const NUM_SAMPLES = 200; // Reduced to prevent instant 100%
+const NOISE_LEVEL = 0.15; // Added noise to make optimization harder
+
+function generateData(shuffle = false) {
+    const inputs = [];
+    const labels = [];
+    
+    // Generate permutation index if shuffling
+    let perm = Array.from({length: SIZE*SIZE}, (_, i) => i);
+    if (shuffle) {
+        for (let i = perm.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [perm[i], perm[j]] = [perm[j], perm[i]];
+        }
+    }
+
+    for (let i = 0; i < NUM_SAMPLES; i++) {
+        const type = Math.random() > 0.5 ? 0 : 1; // 0 = Bars, 1 = Blobs
+        const img = new Float32Array(SIZE * SIZE);
+        
+        // Add Noise base
+        for(let k=0; k<SIZE*SIZE; k++) img[k] = Math.random() * NOISE_LEVEL;
+
+        if (type === 0) {
+            // PATTERN A: Vertical Bars (Structured)
+            const x = Math.floor(Math.random() * (SIZE - 4));
+            for(let r=0; r<SIZE; r++) {
+                for(let c=x; c<x+3; c++) {
+                    if (c < SIZE) img[r*SIZE + c] += 0.8; // Strong signal
+                }
+            }
+        } else {
+            // PATTERN B: Center Blob (Structured)
+            const cx = Math.random() * SIZE;
+            const cy = Math.random() * SIZE;
+            const r_sq = (3 + Math.random()*2)**2;
+            
+            for(let r=0; r<SIZE; r++) {
+                for(let c=0; c<SIZE; c++) {
+                    const dist = (r-cy)**2 + (c-cx)**2;
+                    if (dist < r_sq) img[r*SIZE + c] += 0.8;
+                }
+            }
+        }
+
+        // Clamp 0-1
+        for(let k=0; k<SIZE*SIZE; k++) img[k] = Math.min(1.0, Math.max(0.0, img[k]));
+
+        // Apply Shuffle if needed
+        const finalImg = new Float32Array(SIZE * SIZE);
+        if (shuffle) {
+            for(let k=0; k<SIZE*SIZE; k++) finalImg[k] = img[perm[k]];
+        } else {
+            finalImg.set(img);
+        }
+
+        inputs.push(finalImg);
+        labels.push(type);
+    }
+
+    return {
+        xs: tf.tensor2d(inputs, [NUM_SAMPLES, SIZE*SIZE]),
+        ys: tf.tensor1d(labels, 'float32').expandDims(1),
+        perm: perm 
+    };
+}
+
+// ==========================================
+// 2. LAPLACIAN TENSORFLOW.JS IMPLEMENTATION
+// ==========================================
+function computeLaplacianPenalty(weights) {
+    return tf.tidy(() => {
+        const wShape = weights.shape; // [256, 32]
+        const inputH = SIZE;
+        const inputW = SIZE;
+        const numNeurons = wShape[1];
+
+        // Reshape to [Neurons, Height, Width]
+        const W_reshaped = weights.transpose().reshape([numNeurons, inputH, inputW, 1]); 
+
+        // Discrete Laplacian Kernel
+        const kernel = tf.tensor4d([
+            [[[0]], [[1]], [[0]]],
+            [[[1]], [[-4]], [[1]]],
+            [[[0]], [[1]], [[0]]]
+        ], [3, 3, 1, 1]);
+
+        // Convolve
+        const lap = tf.conv2d(W_reshaped, kernel, 1, 'valid'); 
+        
+        // Sum squares
+        return lap.square().sum();
+    });
+}
+
+// ==========================================
+// 3. MODELS
+// ==========================================
+function createModel(learningRate, useLaplacian = false, lambda = 0.0) {
+    const model = tf.sequential();
+    
+    // Simple MLP: Input(256) -> Hidden(32) -> Output(1)
+    model.add(tf.layers.dense({
+        units: 32, 
+        inputShape: [SIZE*SIZE],
+        activation: 'relu',
+        kernelInitializer: 'glorotNormal'
+    }));
+    
+    model.add(tf.layers.dense({
+        units: 1, 
+        activation: 'sigmoid'
+    }));
+
+    const optimizer = tf.train.adam(learningRate);
+    
+    return { model, optimizer, useLaplacian, lambda };
+}
+
+// Custom Training Loop
+async function trainStep(modelObj, xs, ys) {
+    const { model, optimizer, useLaplacian, lambda } = modelObj;
+    
+    const lossVal = optimizer.minimize(() => {
+        const pred = model.predict(xs);
+        const bce = tf.losses.sigmoidCrossEntropy(ys, pred);
+        
+        let reg = tf.scalar(0);
+        
+        // Regularization
+        if (useLaplacian) {
+            const w1 = model.layers[0].getWeights()[0];
+            reg = computeLaplacianPenalty(w1).mul(lambda);
+        } else {
+            const w1 = model.layers[0].getWeights()[0];
+            reg = w1.square().sum().mul(lambda);
+        }
+        
+        return bce.add(reg);
+    }, true);
+    
+    const loss = await lossVal.data();
+    lossVal.dispose();
+    return loss[0];
+}
+
+async function evalAccuracy(model, xs, ys) {
+    return tf.tidy(() => {
+        const pred = model.predict(xs);
+        const binaryPred = pred.greater(0.5).cast('float32');
+        const correct = binaryPred.equal(ys).cast('float32');
+        return correct.mean().dataSync()[0];
+    });
+}
+
+// ==========================================
+// 4. UI & EXECUTION
+// ==========================================
+let chart;
+
+function initChart() {
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    if(chart) chart.destroy();
+    
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Standard L2 (Baseline)',
+                    borderColor: '#ff6b6b',
+                    data: [],
+                    borderWidth: 2,
+                    tension: 0.1
+                },
+                {
+                    label: 'Surface Tension (Laplacian)',
+                    borderColor: '#4ecdc4',
+                    data: [],
+                    borderWidth: 2,
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            animation: false,
+            scales: {
+                y: { min: 0.0, max: 1.0, grid: { color: '#333' } },
+                x: { grid: { color: '#333' } }
+            }
+        }
+    });
+}
+
+function drawInputPreview(data, index) {
+    const canvas = document.getElementById('inputCanvas');
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(SIZE, SIZE);
+    
+    const tensorData = data.xs.slice([index, 0], [1, SIZE*SIZE]).dataSync();
+    
+    for (let i = 0; i < tensorData.length; i++) {
+        const val = tensorData[i] * 255;
+        imgData.data[i*4 + 0] = val; // R
+        imgData.data[i*4 + 1] = val; // G
+        imgData.data[i*4 + 2] = val; // B
+        imgData.data[i*4 + 3] = 255; // Alpha
+    }
+    
+    ctx.putImageData(imgData, 0, 0);
+}
+
+async function runExperiment() {
+    const isShuffle = document.getElementById('shuffleToggle').checked;
+    const status = document.getElementById('status');
+    const btn = document.getElementById('btnRun');
+    
+    btn.disabled = true;
+    status.textContent = isShuffle ? "Generating SCRAMBLED data..." : "Generating STRUCTURED data...";
+    
+    // Init Data
+    const data = generateData(isShuffle);
+    
+    // Visualize one sample
+    drawInputPreview(data, 0);
+    
+    // Init Models
+    // L2 Model (Baseline)
+    const modelL2 = createModel(0.005, false, 0.001); 
+    // Laplacian Model (Surface Tension) - Calibrated to 0.0001
+    const modelLap = createModel(0.005, true, 0.0001); 
+    
+    initChart();
+    status.textContent = "Training...";
+    
+    const EPOCHS = 50;
+    
+    for (let e = 0; e < EPOCHS; e++) {
+        // Train Step
+        await trainStep(modelL2, data.xs, data.ys);
+        await trainStep(modelLap, data.xs, data.ys);
+        
+        // Eval
+        const accL2 = await evalAccuracy(modelL2.model, data.xs, data.ys);
+        const accLap = await evalAccuracy(modelLap.model, data.xs, data.ys);
+        
+        // Update UI
+        document.getElementById('acc-l2').textContent = (accL2 * 100).toFixed(1) + "%";
+        document.getElementById('acc-lap').textContent = (accLap * 100).toFixed(1) + "%";
+        
+        chart.data.labels.push(e);
+        chart.data.datasets[0].data.push(accL2);
+        chart.data.datasets[1].data.push(accLap);
+        chart.update();
+        
+        if (e % 2 === 0) drawInputPreview(data, Math.floor(Math.random() * 10));
+        
+        await new Promise(r => setTimeout(r, 20)); 
+    }
+    
+    const lapScore = chart.data.datasets[1].data[EPOCHS-1];
+    const l2Score = chart.data.datasets[0].data[EPOCHS-1];
+    
+    let resultText = "";
+    if (isShuffle) {
+        if (lapScore < l2Score) resultText = "SUCCESS: Shuffle killed Surface Tension advantage.";
+        else resultText = "INCONCLUSIVE: Surface Tension still robust.";
+    } else {
+        if (lapScore > l2Score) resultText = "SUCCESS: Surface Tension winning on Structure.";
+        else resultText = "ADJUSTMENT NEEDED: L2 still competitive.";
+    }
+        
+    status.textContent = resultText;
+    btn.disabled = false;
+}
+
+// Initial draw
+initChart();
+
+</script>
+</body>
+</html>
