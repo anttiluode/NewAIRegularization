@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Growing Neural Network - PerceptionLab Node</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .main-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .canvas-row {
+            display: flex;
+            flex: 1;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .canvas-container canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .canvas-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .sidebar {
+            width: 320px;
+            background: #12121a;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #2a2a3a;
+        }
+        
+        h1 {
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        
+        .subtitle {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #4a9eff;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .control-label {
+            width: 100px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .control-slider {
+            flex: 1;
+            margin: 0 10px;
+            -webkit-appearance: none;
+            height: 4px;
+            background: #2a2a3a;
+            border-radius: 2px;
+            outline: none;
+        }
+        
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #4a9eff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .control-value {
+            width: 50px;
+            font-size: 11px;
+            color: #4a9eff;
+            text-align: right;
+            font-family: monospace;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #4a9eff;
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            background: #6ab0ff;
+        }
+        
+        .btn-secondary {
+            background: #2a2a3a;
+            color: #888;
+        }
+        
+        .btn-secondary:hover {
+            background: #3a3a4a;
+            color: #fff;
+        }
+        
+        .btn-danger {
+            background: #ff4a4a;
+            color: #fff;
+        }
+        
+        .btn-success {
+            background: #4aff9f;
+            color: #000;
+        }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .toggle {
+            width: 50px;
+            height: 26px;
+            background: #2a2a3a;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .toggle.active {
+            background: #4aff9f;
+        }
+        
+        .toggle-knob {
+            width: 22px;
+            height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+        
+        .toggle.active .toggle-knob {
+            left: 26px;
+        }
+        
+        .toggle-label {
+            margin-left: 12px;
+            font-size: 13px;
+        }
+        
+        .stats {
+            background: #1a1a24;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        
+        .stat-label {
+            color: #666;
+        }
+        
+        .stat-value {
+            color: #4a9eff;
+            font-family: monospace;
+        }
+        
+        .stat-value.good {
+            color: #4aff9f;
+        }
+        
+        .stat-value.bad {
+            color: #ff4a4a;
+        }
+        
+        .input-select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a24;
+            border: 1px solid #2a2a3a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .loss-graph {
+            height: 60px;
+            background: #1a1a24;
+            border-radius: 4px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loss-graph canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        video {
+            display: none;
+        }
+        
+        .mode-indicator {
+            text-align: center;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .mode-indicator.training {
+            background: rgba(74, 255, 159, 0.2);
+            color: #4aff9f;
+            border: 1px solid #4aff9f;
+        }
+        
+        .mode-indicator.inference {
+            background: rgba(74, 158, 255, 0.2);
+            color: #4a9eff;
+            border: 1px solid #4a9eff;
+        }
+    </style>
+</head>
+<body>
+    <video id="webcam" autoplay playsinline></video>
+    
+    <div class="container">
+        <div class="main-view">
+            <div class="canvas-row">
+                <div class="canvas-container">
+                    <canvas id="networkCanvas"></canvas>
+                    <div class="canvas-label">Growing Network</div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="inputCanvas"></canvas>
+                    <div class="canvas-label">Input Signal</div>
+                </div>
+            </div>
+            <div class="canvas-row">
+                <div class="canvas-container">
+                    <canvas id="outputCanvas"></canvas>
+                    <div class="canvas-label">Network Output</div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="activityCanvas"></canvas>
+                    <div class="canvas-label">Activity Map</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <h1>🌱 Growing Neural Network</h1>
+            <div class="subtitle">Surface Tension Learning - PerceptionLab</div>
+            
+            <div class="mode-indicator training" id="modeIndicator">
+                🔴 TRAINING MODE
+            </div>
+            
+            <div class="section">
+                <div class="toggle-container">
+                    <div class="toggle active" id="trainingToggle">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span class="toggle-label">Training Enabled</span>
+                </div>
+                
+                <div class="button-row">
+                    <button class="btn btn-primary" id="startBtn">▶ Start</button>
+                    <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
+                </div>
+                
+                <select class="input-select" id="inputSource">
+                    <option value="webcam">📷 Webcam</option>
+                    <option value="noise">🌊 Noise Pattern</option>
+                    <option value="gradient">🌈 Moving Gradient</option>
+                    <option value="shapes">⬡ Random Shapes</option>
+                </select>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">GROWTH PARAMETERS</div>
+                
+                <div class="control-row">
+                    <span class="control-label">Surface σ</span>
+                    <input type="range" class="control-slider" id="surfaceTension" 
+                           min="0" max="0.3" step="0.001" value="0.06">
+                    <span class="control-value" id="surfaceTensionVal">0.060</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Growth Rate</span>
+                    <input type="range" class="control-slider" id="growthRate" 
+                           min="0" max="0.1" step="0.001" value="0.02">
+                    <span class="control-value" id="growthRateVal">0.020</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Prune Rate</span>
+                    <input type="range" class="control-slider" id="pruneRate" 
+                           min="0" max="0.05" step="0.001" value="0.005">
+                    <span class="control-value" id="pruneRateVal">0.005</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Branch Prob</span>
+                    <input type="range" class="control-slider" id="branchProb" 
+                           min="0" max="0.1" step="0.001" value="0.015">
+                    <span class="control-value" id="branchProbVal">0.015</span>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">LEARNING PARAMETERS</div>
+                
+                <div class="control-row">
+                    <span class="control-label">Learn Rate</span>
+                    <input type="range" class="control-slider" id="learnRate" 
+                           min="0" max="0.5" step="0.01" value="0.1">
+                    <span class="control-value" id="learnRateVal">0.100</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Hebbian</span>
+                    <input type="range" class="control-slider" id="hebbianRate" 
+                           min="0" max="0.1" step="0.001" value="0.02">
+                    <span class="control-value" id="hebbianRateVal">0.020</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Competition</span>
+                    <input type="range" class="control-slider" id="competition" 
+                           min="0" max="1" step="0.01" value="0.3">
+                    <span class="control-value" id="competitionVal">0.300</span>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">NETWORK STATISTICS</div>
+                <div class="stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Neurons</span>
+                        <span class="stat-value" id="statNeurons">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Connections</span>
+                        <span class="stat-value" id="statConnections">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Active</span>
+                        <span class="stat-value" id="statActive">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Births</span>
+                        <span class="stat-value good" id="statBirths">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Deaths</span>
+                        <span class="stat-value bad" id="statDeaths">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Loss</span>
+                        <span class="stat-value" id="statLoss">0.000</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Laplacian</span>
+                        <span class="stat-value" id="statLaplacian">0.000</span>
+                    </div>
+                </div>
+                
+                <div class="loss-graph">
+                    <canvas id="lossCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ============================================================================
+// GROWING NEURAL NETWORK - Surface Tension Learning Visualization
+// ============================================================================
+
+// Canvas setup
+const networkCanvas = document.getElementById('networkCanvas');
+const inputCanvas = document.getElementById('inputCanvas');
+const outputCanvas = document.getElementById('outputCanvas');
+const activityCanvas = document.getElementById('activityCanvas');
+const lossCanvas = document.getElementById('lossCanvas');
+
+const networkCtx = networkCanvas.getContext('2d');
+const inputCtx = inputCanvas.getContext('2d');
+const outputCtx = outputCanvas.getContext('2d');
+const activityCtx = activityCanvas.getContext('2d');
+const lossCtx = lossCanvas.getContext('2d');
+
+// Video setup
+const video = document.getElementById('webcam');
+let webcamReady = false;
+
+// State
+let running = false;
+let training = true;
+let frameCount = 0;
+let totalBirths = 0;
+let totalDeaths = 0;
+let lossHistory = [];
+
+// Network resolution
+const INPUT_SIZE = 32;  // 32x32 input
+const HIDDEN_SIZE = 16; // 16x16 hidden layer (will grow)
+const OUTPUT_SIZE = 32; // 32x32 output (reconstruction)
+
+// ============================================================================
+// NEURON CLASS - A node in the growing network
+// ============================================================================
+
+class Neuron {
+    constructor(x, y, layer, id) {
+        this.x = x;
+        this.y = y;
+        this.layer = layer;  // 0=input, 1=hidden, 2=output
+        this.id = id;
+        
+        // Visual position (for drawing)
+        this.visualX = 0;
+        this.visualY = 0;
+        
+        // Activation state
+        this.activation = 0;
+        this.prevActivation = 0;
+        this.bias = (Math.random() - 0.5) * 0.1;
+        
+        // Growth state
+        this.age = 0;
+        this.health = 1.0;  // 0 = dying, 1 = healthy
+        this.totalActivation = 0;  // Accumulated over time
+        
+        // Connections (for hidden/output neurons)
+        this.inputWeights = [];  // Weights from previous layer
+        this.inputSources = [];  // Source neuron indices
+        
+        // For visualization
+        this.pulsePhase = Math.random() * Math.PI * 2;
+    }
+}
+
+// ============================================================================
+// GROWING NETWORK CLASS
+// ============================================================================
+
+class GrowingNetwork {
+    constructor() {
+        this.inputNeurons = [];
+        this.hiddenNeurons = [];
+        this.outputNeurons = [];
+        
+        this.inputData = new Float32Array(INPUT_SIZE * INPUT_SIZE);
+        this.outputData = new Float32Array(OUTPUT_SIZE * OUTPUT_SIZE);
+        
+        this.initialize();
+    }
+    
+    initialize() {
+        // Create input layer (fixed)
+        this.inputNeurons = [];
+        for (let y = 0; y < INPUT_SIZE; y++) {
+            for (let x = 0; x < INPUT_SIZE; x++) {
+                const neuron = new Neuron(x, y, 0, this.inputNeurons.length);
+                this.inputNeurons.push(neuron);
+            }
+        }
+        
+        // Create initial hidden layer (small, will grow)
+        this.hiddenNeurons = [];
+        const initialHidden = 4;  // Start with just 4 hidden neurons
+        for (let i = 0; i < initialHidden; i++) {
+            this.addHiddenNeuron();
+        }
+        
+        // Create output layer (fixed)
+        this.outputNeurons = [];
+        for (let y = 0; y < OUTPUT_SIZE; y++) {
+            for (let x = 0; x < OUTPUT_SIZE; x++) {
+                const neuron = new Neuron(x, y, 2, this.outputNeurons.length);
+                // Connect to all hidden neurons initially
+                for (let h = 0; h < this.hiddenNeurons.length; h++) {
+                    neuron.inputWeights.push((Math.random() - 0.5) * 0.5);
+                    neuron.inputSources.push(h);
+                }
+                this.outputNeurons.push(neuron);
+            }
+        }
+        
+        totalBirths = initialHidden;
+        totalDeaths = 0;
+    }
+    
+    addHiddenNeuron() {
+        const neuron = new Neuron(
+            Math.random() * HIDDEN_SIZE,
+            Math.random() * HIDDEN_SIZE,
+            1,
+            this.hiddenNeurons.length
+        );
+        
+        // Ensure valid position
+        neuron.x = Math.max(0, Math.min(HIDDEN_SIZE, neuron.x));
+        neuron.y = Math.max(0, Math.min(HIDDEN_SIZE, neuron.y));
+        
+        // Connect to random subset of input neurons (sparse connectivity)
+        const numInputs = Math.floor(INPUT_SIZE * INPUT_SIZE * 0.1);  // 10% connectivity
+        const inputIndices = [];
+        for (let i = 0; i < INPUT_SIZE * INPUT_SIZE; i++) inputIndices.push(i);
+        this.shuffle(inputIndices);
+        
+        for (let i = 0; i < numInputs; i++) {
+            neuron.inputWeights.push((Math.random() - 0.5) * 0.5);
+            neuron.inputSources.push(inputIndices[i]);
+        }
+        
+        this.hiddenNeurons.push(neuron);
+        
+        // Update output neurons to include new hidden neuron
+        for (const outNeuron of this.outputNeurons) {
+            outNeuron.inputWeights.push((Math.random() - 0.5) * 0.1);
+            outNeuron.inputSources.push(this.hiddenNeurons.length - 1);
+        }
+        
+        totalBirths++;
+        return neuron;
+    }
+    
+    removeHiddenNeuron(index) {
+        if (this.hiddenNeurons.length <= 2) return;  // Keep minimum
+        
+        this.hiddenNeurons.splice(index, 1);
+        
+        // Update output neuron connections
+        for (const outNeuron of this.outputNeurons) {
+            // Remove connection to deleted neuron
+            const connIdx = outNeuron.inputSources.indexOf(index);
+            if (connIdx >= 0) {
+                outNeuron.inputWeights.splice(connIdx, 1);
+                outNeuron.inputSources.splice(connIdx, 1);
+            }
+            // Update indices for neurons after deleted one
+            for (let i = 0; i < outNeuron.inputSources.length; i++) {
+                if (outNeuron.inputSources[i] > index) {
+                    outNeuron.inputSources[i]--;
+                }
+            }
+        }
+        
+        // Renumber hidden neuron IDs
+        for (let i = 0; i < this.hiddenNeurons.length; i++) {
+            this.hiddenNeurons[i].id = i;
+        }
+        
+        totalDeaths++;
+    }
+    
+    shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+    
+    // Forward pass
+    forward(input) {
+        // Set input activations
+        for (let i = 0; i < this.inputNeurons.length; i++) {
+            this.inputNeurons[i].prevActivation = this.inputNeurons[i].activation;
+            this.inputNeurons[i].activation = input[i];
+        }
+        
+        // Hidden layer activations
+        for (const neuron of this.hiddenNeurons) {
+            neuron.prevActivation = neuron.activation;
+            let sum = neuron.bias;
+            for (let i = 0; i < neuron.inputWeights.length; i++) {
+                const srcIdx = neuron.inputSources[i];
+                sum += this.inputNeurons[srcIdx].activation * neuron.inputWeights[i];
+            }
+            neuron.activation = Math.max(0, Math.min(10, sum));  // ReLU with cap
+            neuron.totalActivation += Math.abs(neuron.activation);
+            neuron.age++;
+        }
+        
+        // Competitive inhibition in hidden layer
+        if (params.competition > 0) {
+            const activations = this.hiddenNeurons.map(n => n.activation);
+            const maxAct = Math.max(...activations) + 1e-6;
+            for (const neuron of this.hiddenNeurons) {
+                const ratio = neuron.activation / maxAct;
+                neuron.activation *= Math.pow(ratio, params.competition);
+            }
+        }
+        
+        // Output layer activations
+        for (const neuron of this.outputNeurons) {
+            neuron.prevActivation = neuron.activation;
+            let sum = neuron.bias;
+            for (let i = 0; i < neuron.inputWeights.length; i++) {
+                const srcIdx = neuron.inputSources[i];
+                if (srcIdx < this.hiddenNeurons.length) {
+                    sum += this.hiddenNeurons[srcIdx].activation * neuron.inputWeights[i];
+                }
+            }
+            neuron.activation = 1 / (1 + Math.exp(-sum));  // Sigmoid for output
+        }
+        
+        // Collect output
+        for (let i = 0; i < this.outputNeurons.length; i++) {
+            this.outputData[i] = this.outputNeurons[i].activation;
+        }
+        
+        return this.outputData;
+    }
+    
+    // Backward pass with Laplacian regularization
+    backward(target, learnRate, surfaceTension, hebbianRate) {
+        // Compute output errors
+        const outputErrors = [];
+        let totalLoss = 0;
+        
+        for (let i = 0; i < this.outputNeurons.length; i++) {
+            const error = target[i] - this.outputNeurons[i].activation;
+            outputErrors.push(error);
+            totalLoss += error * error;
+        }
+        totalLoss /= this.outputNeurons.length;
+        
+        // Compute hidden errors (backprop)
+        const hiddenErrors = new Array(this.hiddenNeurons.length).fill(0);
+        
+        for (let i = 0; i < this.outputNeurons.length; i++) {
+            const outNeuron = this.outputNeurons[i];
+            const outAct = outNeuron.activation;
+            const delta = outputErrors[i] * outAct * (1 - outAct);  // Sigmoid derivative
+            
+            for (let j = 0; j < outNeuron.inputWeights.length; j++) {
+                const hiddenIdx = outNeuron.inputSources[j];
+                if (hiddenIdx < this.hiddenNeurons.length) {
+                    hiddenErrors[hiddenIdx] += delta * outNeuron.inputWeights[j];
+                    
+                    // Update output weights
+                    outNeuron.inputWeights[j] += learnRate * delta * this.hiddenNeurons[hiddenIdx].activation;
+                    
+                    // Clip weights
+                    outNeuron.inputWeights[j] = Math.max(-5, Math.min(5, outNeuron.inputWeights[j]));
+                }
+            }
+        }
+        
+        // Update hidden weights + Hebbian + Laplacian
+        for (let h = 0; h < this.hiddenNeurons.length; h++) {
+            const neuron = this.hiddenNeurons[h];
+            const reluDeriv = neuron.activation > 0 ? 1 : 0;
+            const delta = hiddenErrors[h] * reluDeriv;
+            
+            for (let i = 0; i < neuron.inputWeights.length; i++) {
+                const srcIdx = neuron.inputSources[i];
+                const inputAct = this.inputNeurons[srcIdx].activation;
+                
+                // Gradient descent
+                neuron.inputWeights[i] += learnRate * delta * inputAct;
+                
+                // Hebbian learning (correlation-based)
+                neuron.inputWeights[i] += hebbianRate * inputAct * neuron.activation;
+                
+                // Clip weights to prevent explosion
+                neuron.inputWeights[i] = Math.max(-5, Math.min(5, neuron.inputWeights[i]));
+            }
+            
+            // Update health based on activity
+            const avgActivity = neuron.totalActivation / (neuron.age + 1);
+            neuron.health = Math.min(1, neuron.health + (avgActivity > 0.1 ? 0.01 : -0.02));
+        }
+        
+        // Apply Laplacian regularization to hidden layer weights
+        const laplacianPenalty = this.applyLaplacian(surfaceTension);
+        
+        return { loss: totalLoss, laplacian: laplacianPenalty };
+    }
+    
+    applyLaplacian(sigma) {
+        if (sigma <= 0 || this.hiddenNeurons.length < 3) return 0;
+        
+        let totalPenalty = 0;
+        
+        // For each hidden neuron, smooth its weights based on "neighboring" neurons
+        // Neighbors defined by spatial proximity
+        for (let h = 0; h < this.hiddenNeurons.length; h++) {
+            const neuron = this.hiddenNeurons[h];
+            
+            // Find neighbors
+            const neighbors = [];
+            for (let h2 = 0; h2 < this.hiddenNeurons.length; h2++) {
+                if (h2 === h) continue;
+                const other = this.hiddenNeurons[h2];
+                const dist = Math.sqrt(
+                    Math.pow(neuron.x - other.x, 2) + 
+                    Math.pow(neuron.y - other.y, 2)
+                );
+                if (dist < 5) {  // Within neighborhood
+                    neighbors.push({ neuron: other, dist: dist });
+                }
+            }
+            
+            if (neighbors.length === 0) continue;
+            
+            // Compute Laplacian for weights
+            // For each weight, compute average of neighbors' corresponding weights
+            for (let i = 0; i < neuron.inputWeights.length; i++) {
+                let neighborAvg = 0;
+                let weightSum = 0;
+                
+                for (const nb of neighbors) {
+                    if (i < nb.neuron.inputWeights.length) {
+                        const w = 1 / (nb.dist + 0.1);
+                        neighborAvg += nb.neuron.inputWeights[i] * w;
+                        weightSum += w;
+                    }
+                }
+                
+                if (weightSum > 0) {
+                    neighborAvg /= weightSum;
+                    const laplacian = neighborAvg - neuron.inputWeights[i];
+                    totalPenalty += laplacian * laplacian;
+                    
+                    // Apply surface tension (smooth toward neighbors) - with clipping
+                    const update = sigma * laplacian;
+                    if (isFinite(update)) {
+                        neuron.inputWeights[i] += Math.max(-0.1, Math.min(0.1, update));
+                    }
+                }
+            }
+        }
+        
+        return totalPenalty;
+    }
+    
+    // Growth and pruning
+    growAndPrune(growthRate, pruneRate, branchProb) {
+        // Prune unhealthy neurons
+        for (let h = this.hiddenNeurons.length - 1; h >= 0; h--) {
+            const neuron = this.hiddenNeurons[h];
+            if (neuron.health < 0.1 && neuron.age > 50 && Math.random() < pruneRate) {
+                this.removeHiddenNeuron(h);
+            }
+        }
+        
+        // Grow new neurons where error/gradient is high
+        if (Math.random() < branchProb && this.hiddenNeurons.length < 200) {
+            // Find region with highest error (simplified: random for now with bias toward active regions)
+            const newNeuron = this.addHiddenNeuron();
+            
+            // Position near active neurons
+            if (this.hiddenNeurons.length > 1) {
+                let maxAct = 0;
+                let maxNeuron = null;
+                for (const n of this.hiddenNeurons) {
+                    if (n !== newNeuron && n.activation > maxAct && isFinite(n.x) && isFinite(n.y)) {
+                        maxAct = n.activation;
+                        maxNeuron = n;
+                    }
+                }
+                if (maxNeuron) {
+                    newNeuron.x = maxNeuron.x + (Math.random() - 0.5) * 3;
+                    newNeuron.y = maxNeuron.y + (Math.random() - 0.5) * 3;
+                    // Clamp to valid range
+                    newNeuron.x = Math.max(0, Math.min(HIDDEN_SIZE, newNeuron.x));
+                    newNeuron.y = Math.max(0, Math.min(HIDDEN_SIZE, newNeuron.y));
+                }
+            }
+        }
+    }
+    
+    getStats() {
+        let activeCount = 0;
+        let totalConnections = 0;
+        
+        for (const n of this.hiddenNeurons) {
+            if (n.activation > 0.1) activeCount++;
+            totalConnections += n.inputWeights.length;
+        }
+        
+        for (const n of this.outputNeurons) {
+            totalConnections += n.inputWeights.length;
+        }
+        
+        return {
+            neurons: this.hiddenNeurons.length,
+            connections: totalConnections,
+            active: activeCount
+        };
+    }
+}
+
+// ============================================================================
+// PARAMETERS
+// ============================================================================
+
+const params = {
+    surfaceTension: 0.06,
+    growthRate: 0.02,
+    pruneRate: 0.005,
+    branchProb: 0.015,
+    learnRate: 0.1,
+    hebbianRate: 0.02,
+    competition: 0.3
+};
+
+// ============================================================================
+// VISUALIZATION
+// ============================================================================
+
+function resizeCanvases() {
+    const containers = document.querySelectorAll('.canvas-container');
+    containers.forEach(container => {
+        const canvas = container.querySelector('canvas');
+        if (canvas) {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+    });
+    
+    // Loss graph
+    const lossContainer = document.querySelector('.loss-graph');
+    lossCanvas.width = lossContainer.clientWidth;
+    lossCanvas.height = lossContainer.clientHeight;
+}
+
+function drawNetwork(ctx, network) {
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, w, h);
+    
+    // Layout: Input (left) -> Hidden (center) -> Output (right)
+    const inputX = w * 0.15;
+    const hiddenX = w * 0.5;
+    const outputX = w * 0.85;
+    
+    // Draw connections from hidden to output (faint)
+    ctx.lineWidth = 0.5;
+    for (const outNeuron of network.outputNeurons) {
+        const outY = (outNeuron.y / OUTPUT_SIZE) * h * 0.8 + h * 0.1;
+        const outXPos = outputX;
+        
+        for (let i = 0; i < outNeuron.inputSources.length; i++) {
+            const hiddenIdx = outNeuron.inputSources[i];
+            if (hiddenIdx >= network.hiddenNeurons.length) continue;
+            
+            const hidden = network.hiddenNeurons[hiddenIdx];
+            const weight = outNeuron.inputWeights[i];
+            const hiddenY = (hidden.y / HIDDEN_SIZE) * h * 0.8 + h * 0.1;
+            
+            const alpha = Math.min(1, Math.abs(weight) * 2) * 0.3;
+            const color = weight > 0 ? `rgba(74, 255, 159, ${alpha})` : `rgba(255, 74, 74, ${alpha})`;
+            
+            ctx.strokeStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(hiddenX + (hidden.x / HIDDEN_SIZE) * w * 0.2, hiddenY);
+            ctx.lineTo(outXPos, outY);
+            ctx.stroke();
+        }
+    }
+    
+    // Draw hidden neurons with their connections
+    for (const neuron of network.hiddenNeurons) {
+        // Safety check for valid positions
+        if (!isFinite(neuron.x) || !isFinite(neuron.y)) {
+            neuron.x = Math.random() * HIDDEN_SIZE;
+            neuron.y = Math.random() * HIDDEN_SIZE;
+        }
+        
+        const nx = hiddenX + (neuron.x / HIDDEN_SIZE - 0.5) * w * 0.2;
+        const ny = (neuron.y / HIDDEN_SIZE) * h * 0.8 + h * 0.1;
+        
+        // Skip if still invalid
+        if (!isFinite(nx) || !isFinite(ny)) continue;
+        
+        // Draw input connections (sample)
+        for (let i = 0; i < Math.min(10, neuron.inputSources.length); i++) {
+            const srcIdx = neuron.inputSources[i];
+            const weight = neuron.inputWeights[i];
+            const srcX = srcIdx % INPUT_SIZE;
+            const srcY = Math.floor(srcIdx / INPUT_SIZE);
+            
+            const inX = inputX;
+            const inY = (srcY / INPUT_SIZE) * h * 0.8 + h * 0.1;
+            
+            const alpha = Math.min(1, Math.abs(weight) * 3) * 0.2;
+            ctx.strokeStyle = weight > 0 ? `rgba(74, 158, 255, ${alpha})` : `rgba(255, 158, 74, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(inX, inY);
+            ctx.lineTo(nx, ny);
+            ctx.stroke();
+        }
+        
+        // Draw neuron body
+        const pulse = Math.sin(frameCount * 0.1 + neuron.pulsePhase) * 0.3 + 0.7;
+        const size = Math.max(2, Math.min(20, 4 + neuron.activation * 8));  // Clamp size
+        const healthColor = neuron.health > 0.5 ? 
+            `rgba(74, 255, 159, ${0.5 + neuron.activation * 0.5})` :
+            `rgba(255, 200, 74, ${0.5 + neuron.activation * 0.5})`;
+        
+        // Glow - with safety check
+        const glowSize = Math.max(1, size * 2 * pulse);
+        if (isFinite(glowSize) && glowSize > 0) {
+            const gradient = ctx.createRadialGradient(nx, ny, 0, nx, ny, glowSize);
+            gradient.addColorStop(0, healthColor);
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(nx, ny, glowSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Core
+        ctx.fillStyle = healthColor;
+        ctx.beginPath();
+        ctx.arc(nx, ny, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Draw layer labels
+    ctx.fillStyle = '#444';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Input', inputX, h - 10);
+    ctx.fillText('Hidden', hiddenX, h - 10);
+    ctx.fillText('Output', outputX, h - 10);
+}
+
+function drawSignal(ctx, data, size, label) {
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    
+    const cellW = w / size;
+    const cellH = h / size;
+    
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            const val = data[y * size + x];
+            const brightness = Math.floor(val * 255);
+            ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+            ctx.fillRect(x * cellW, y * cellH, cellW + 1, cellH + 1);
+        }
+    }
+}
+
+function drawActivity(ctx, network) {
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, w, h);
+    
+    // Draw hidden neuron activities as a heatmap
+    const gridSize = Math.ceil(Math.sqrt(network.hiddenNeurons.length));
+    const cellW = w / gridSize;
+    const cellH = h / gridSize;
+    
+    for (let i = 0; i < network.hiddenNeurons.length; i++) {
+        const neuron = network.hiddenNeurons[i];
+        const x = (i % gridSize) * cellW;
+        const y = Math.floor(i / gridSize) * cellH;
+        
+        const act = Math.min(1, neuron.activation);
+        const health = neuron.health;
+        
+        // Color based on activity and health
+        const r = Math.floor((1 - health) * 255);
+        const g = Math.floor(act * 255 * health);
+        const b = Math.floor(health * 100);
+        
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+    }
+}
+
+function drawLossGraph(ctx) {
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    
+    ctx.fillStyle = '#1a1a24';
+    ctx.fillRect(0, 0, w, h);
+    
+    if (lossHistory.length < 2) return;
+    
+    const maxLoss = Math.max(...lossHistory, 0.5);
+    
+    ctx.strokeStyle = '#4a9eff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    
+    for (let i = 0; i < lossHistory.length; i++) {
+        const x = (i / (lossHistory.length - 1)) * w;
+        const y = h - (lossHistory[i] / maxLoss) * h * 0.9;
+        
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    
+    ctx.stroke();
+}
+
+// ============================================================================
+// INPUT SOURCES
+// ============================================================================
+
+let inputSource = 'noise';
+
+async function setupWebcam() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 64, height: 64 } 
+        });
+        video.srcObject = stream;
+        await video.play();
+        webcamReady = true;
+    } catch (e) {
+        console.log('Webcam not available:', e);
+        inputSource = 'noise';
+        document.getElementById('inputSource').value = 'noise';
+    }
+}
+
+function getInputSignal(t) {
+    const input = new Float32Array(INPUT_SIZE * INPUT_SIZE);
+    
+    switch (inputSource) {
+        case 'webcam':
+            if (webcamReady) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = INPUT_SIZE;
+                tempCanvas.height = INPUT_SIZE;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(video, 0, 0, INPUT_SIZE, INPUT_SIZE);
+                const imageData = tempCtx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE);
+                for (let i = 0; i < INPUT_SIZE * INPUT_SIZE; i++) {
+                    input[i] = imageData.data[i * 4] / 255;
+                }
+            }
+            break;
+            
+        case 'noise':
+            for (let i = 0; i < input.length; i++) {
+                const x = i % INPUT_SIZE;
+                const y = Math.floor(i / INPUT_SIZE);
+                input[i] = 0.5 + 0.5 * Math.sin(x * 0.3 + t * 0.02) * Math.cos(y * 0.3 + t * 0.015);
+                input[i] += (Math.random() - 0.5) * 0.2;
+                input[i] = Math.max(0, Math.min(1, input[i]));
+            }
+            break;
+            
+        case 'gradient':
+            for (let i = 0; i < input.length; i++) {
+                const x = i % INPUT_SIZE;
+                const y = Math.floor(i / INPUT_SIZE);
+                const angle = t * 0.01;
+                input[i] = 0.5 + 0.5 * Math.sin(x * Math.cos(angle) * 0.2 + y * Math.sin(angle) * 0.2);
+            }
+            break;
+            
+        case 'shapes':
+            // Random moving shapes
+            const numShapes = 3;
+            for (let s = 0; s < numShapes; s++) {
+                const cx = INPUT_SIZE/2 + Math.sin(t * 0.01 + s * 2) * INPUT_SIZE * 0.3;
+                const cy = INPUT_SIZE/2 + Math.cos(t * 0.013 + s * 2) * INPUT_SIZE * 0.3;
+                const r = 4 + Math.sin(t * 0.02 + s) * 2;
+                
+                for (let i = 0; i < input.length; i++) {
+                    const x = i % INPUT_SIZE;
+                    const y = Math.floor(i / INPUT_SIZE);
+                    const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+                    if (dist < r) {
+                        input[i] = Math.min(1, input[i] + (1 - dist / r));
+                    }
+                }
+            }
+            break;
+    }
+    
+    return input;
+}
+
+// ============================================================================
+// MAIN LOOP
+// ============================================================================
+
+let network = new GrowingNetwork();
+
+function update() {
+    if (!running) return;
+    
+    frameCount++;
+    
+    // Get input
+    const input = getInputSignal(frameCount);
+    network.inputData = input;
+    
+    // Forward pass
+    const output = network.forward(input);
+    
+    let loss = 0;
+    let laplacian = 0;
+    
+    // Training
+    if (training) {
+        // Target is to reconstruct input (autoencoder style)
+        const result = network.backward(
+            input,  // Target = input (reconstruction)
+            params.learnRate,
+            params.surfaceTension,
+            params.hebbianRate
+        );
+        loss = result.loss;
+        laplacian = result.laplacian;
+        
+        // Growth and pruning
+        if (frameCount % 10 === 0) {
+            network.growAndPrune(params.growthRate, params.pruneRate, params.branchProb);
+        }
+    }
+    
+    // Record loss
+    lossHistory.push(loss);
+    if (lossHistory.length > 200) lossHistory.shift();
+    
+    // Update stats
+    const stats = network.getStats();
+    document.getElementById('statNeurons').textContent = stats.neurons;
+    document.getElementById('statConnections').textContent = stats.connections;
+    document.getElementById('statActive').textContent = stats.active;
+    document.getElementById('statBirths').textContent = totalBirths;
+    document.getElementById('statDeaths').textContent = totalDeaths;
+    document.getElementById('statLoss').textContent = loss.toFixed(4);
+    document.getElementById('statLaplacian').textContent = laplacian.toFixed(2);
+    
+    // Draw
+    drawNetwork(networkCtx, network);
+    drawSignal(inputCtx, input, INPUT_SIZE);
+    drawSignal(outputCtx, output, OUTPUT_SIZE);
+    drawActivity(activityCtx, network);
+    drawLossGraph(lossCtx);
+    
+    requestAnimationFrame(update);
+}
+
+// ============================================================================
+// UI HANDLERS
+// ============================================================================
+
+function setupUI() {
+    // Training toggle
+    document.getElementById('trainingToggle').addEventListener('click', function() {
+        training = !training;
+        this.classList.toggle('active', training);
+        document.querySelector('.toggle-label').textContent = training ? 'Training Enabled' : 'Training Disabled';
+        
+        const indicator = document.getElementById('modeIndicator');
+        if (training) {
+            indicator.className = 'mode-indicator training';
+            indicator.textContent = '🔴 TRAINING MODE';
+        } else {
+            indicator.className = 'mode-indicator inference';
+            indicator.textContent = '🔵 INFERENCE MODE';
+        }
+    });
+    
+    // Start/Stop
+    document.getElementById('startBtn').addEventListener('click', function() {
+        running = !running;
+        this.textContent = running ? '⏸ Pause' : '▶ Start';
+        this.className = running ? 'btn btn-secondary' : 'btn btn-primary';
+        if (running) update();
+    });
+    
+    // Reset
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        network = new GrowingNetwork();
+        lossHistory = [];
+        frameCount = 0;
+        totalBirths = 4;
+        totalDeaths = 0;
+    });
+    
+    // Input source
+    document.getElementById('inputSource').addEventListener('change', function() {
+        inputSource = this.value;
+        if (inputSource === 'webcam' && !webcamReady) {
+            setupWebcam();
+        }
+    });
+    
+    // Sliders
+    const sliders = [
+        { id: 'surfaceTension', param: 'surfaceTension' },
+        { id: 'growthRate', param: 'growthRate' },
+        { id: 'pruneRate', param: 'pruneRate' },
+        { id: 'branchProb', param: 'branchProb' },
+        { id: 'learnRate', param: 'learnRate' },
+        { id: 'hebbianRate', param: 'hebbianRate' },
+        { id: 'competition', param: 'competition' }
+    ];
+    
+    sliders.forEach(({ id, param }) => {
+        const slider = document.getElementById(id);
+        const display = document.getElementById(id + 'Val');
+        
+        slider.addEventListener('input', function() {
+            params[param] = parseFloat(this.value);
+            display.textContent = params[param].toFixed(3);
+        });
+    });
+}
+
+// ============================================================================
+// INIT
+// ============================================================================
+
+window.addEventListener('load', () => {
+    resizeCanvases();
+    setupUI();
+    
+    // Initial draw
+    drawNetwork(networkCtx, network);
+});
+
+window.addEventListener('resize', resizeCanvases);
+</script>
+</body>
+</html>

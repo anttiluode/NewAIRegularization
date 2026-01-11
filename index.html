@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life-Like Morphogenesis v3 - With Death</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a12;
+            min-height: 100vh;
+            color: #e8e8e8;
+            padding: 12px;
+        }
+        .container { max-width: 1350px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 12px; }
+        h1 { font-size: 1.6rem; color: #81c784; margin-bottom: 4px; }
+        .subtitle { color: #666; font-size: 0.8rem; }
+        .main-layout { display: grid; grid-template-columns: 1fr 300px; gap: 12px; }
+        @media (max-width: 850px) { .main-layout { grid-template-columns: 1fr; } }
+        .canvas-container {
+            background: #000;
+            border-radius: 8px;
+            padding: 8px;
+            border: 1px solid #222;
+        }
+        #mainCanvas {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 4px;
+            cursor: crosshair;
+            background: #000;
+            display: block;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 0.7rem;
+            color: #666;
+        }
+        .controls {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #222;
+            font-size: 0.8rem;
+        }
+        .section { margin-bottom: 12px; }
+        .section h3 {
+            color: #81c784;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #333;
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+        .slider-row label {
+            flex: 0 0 90px;
+            color: #888;
+            font-size: 0.75rem;
+        }
+        .slider-row input[type="range"] {
+            flex: 1;
+            height: 4px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 2px;
+        }
+        .slider-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #64b5f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .slider-row .val {
+            flex: 0 0 45px;
+            text-align: right;
+            color: #64b5f6;
+            font-family: monospace;
+            font-size: 0.7rem;
+        }
+        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            background: #333;
+            color: #fff;
+        }
+        button:hover { background: #444; }
+        button.active { background: #64b5f6; color: #000; }
+        .presets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+        .preset-btn { padding: 8px 4px; font-size: 0.7rem; }
+        .preset-btn.active { background: #81c784; color: #000; }
+        .metrics {
+            background: #161b22;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 0.7rem;
+        }
+        .metric { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .metric .label { color: #666; }
+        .metric .value { color: #81c784; font-family: monospace; }
+        .info {
+            margin-top: 8px;
+            padding: 6px;
+            background: #1a2f1a;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            color: #81c784;
+            line-height: 1.4;
+        }
+        .info.warn { background: #2f2a1a; color: #f0c674; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌿 Life-Like Morphogenesis v3</h1>
+            <p class="subtitle">Tip Growth • Resource Competition • Apoptosis • Surface Tension</p>
+        </header>
+        
+        <div class="main-layout">
+            <div class="canvas-container">
+                <canvas id="mainCanvas" width="600" height="600"></canvas>
+                <div class="status-bar">
+                    <span>Iter: <span id="iteration">0</span></span>
+                    <span>Tips: <span id="tipCount">0</span></span>
+                    <span>Mass: <span id="totalMass">0</span></span>
+                    <span>Energy: <span id="energy">100</span>%</span>
+                    <span id="pauseIndicator" style="color:#f44; display:none;">PAUSED</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="section">
+                    <h3>Controls</h3>
+                    <div class="btn-row">
+                        <button id="playPause">⏸ Pause</button>
+                        <button id="reset">🔄 Reset</button>
+                        <button id="step">→ Step</button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Presets</h3>
+                    <div class="presets">
+                        <button class="preset-btn active" data-preset="neuron">🧠 Neuron</button>
+                        <button class="preset-btn" data-preset="root">🌱 Root</button>
+                        <button class="preset-btn" data-preset="vessel">🩸 Vessel</button>
+                        <button class="preset-btn" data-preset="lightning">⚡ Lightning</button>
+                        <button class="preset-btn" data-preset="coral">🪸 Coral</button>
+                        <button class="preset-btn" data-preset="fungal">🍄 Mycelium</button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Growth</h3>
+                    <div class="slider-row">
+                        <label>Branch prob</label>
+                        <input type="range" id="branchProb" min="0" max="0.1" step="0.002" value="0.02">
+                        <span class="val" id="branchProbVal">0.020</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>Growth speed</label>
+                        <input type="range" id="growthSpeed" min="0.5" max="3" step="0.1" value="1.5">
+                        <span class="val" id="growthSpeedVal">1.5</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>Wiggle</label>
+                        <input type="range" id="wiggle" min="0" max="1" step="0.05" value="0.3">
+                        <span class="val" id="wiggleVal">0.30</span>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Death & Competition</h3>
+                    <div class="slider-row">
+                        <label>Death rate</label>
+                        <input type="range" id="deathRate" min="0" max="0.02" step="0.001" value="0.005">
+                        <span class="val" id="deathRateVal">0.005</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>Tip death</label>
+                        <input type="range" id="tipDeath" min="0" max="0.05" step="0.002" value="0.01">
+                        <span class="val" id="tipDeathVal">0.010</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>Competition</label>
+                        <input type="range" id="competition" min="0" max="1" step="0.05" value="0.3">
+                        <span class="val" id="competitionVal">0.30</span>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Physics</h3>
+                    <div class="slider-row">
+                        <label>Surface σ</label>
+                        <input type="range" id="sigma" min="0" max="0.3" step="0.01" value="0.08">
+                        <span class="val" id="sigmaVal">0.08</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>Avoidance</label>
+                        <input type="range" id="avoidance" min="0" max="2" step="0.1" value="0.8">
+                        <span class="val" id="avoidanceVal">0.8</span>
+                    </div>
+                    <div class="slider-row">
+                        <label>Tropism</label>
+                        <input type="range" id="tropism" min="-1" max="1" step="0.1" value="0">
+                        <span class="val" id="tropismVal">0.0</span>
+                    </div>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric"><span class="label">Branches:</span><span class="value" id="branches">0</span></div>
+                    <div class="metric"><span class="label">Junctions:</span><span class="value" id="junctions">0</span></div>
+                    <div class="metric"><span class="label">Max depth:</span><span class="value" id="maxDepth">0</span></div>
+                    <div class="metric"><span class="label">Deaths:</span><span class="value" id="deaths">0</span></div>
+                </div>
+                
+                <div class="info" id="info">
+                    Click canvas to add nutrient source. Tips grow toward nutrients.
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ============================================================================
+// TIP-BASED MORPHOGENESIS WITH DEATH
+// ============================================================================
+
+const PRESETS = {
+    neuron: {
+        branchProb: 0.015, growthSpeed: 1.2, wiggle: 0.25,
+        deathRate: 0.003, tipDeath: 0.008, competition: 0.4,
+        sigma: 0.1, avoidance: 1.0, tropism: 0, nSeeds: 1
+    },
+    root: {
+        branchProb: 0.025, growthSpeed: 1.0, wiggle: 0.4,
+        deathRate: 0.002, tipDeath: 0.015, competition: 0.5,
+        sigma: 0.05, avoidance: 0.6, tropism: 0.3, nSeeds: 1
+    },
+    vessel: {
+        branchProb: 0.02, growthSpeed: 1.5, wiggle: 0.15,
+        deathRate: 0.004, tipDeath: 0.01, competition: 0.3,
+        sigma: 0.12, avoidance: 0.8, tropism: 0, nSeeds: 2
+    },
+    lightning: {
+        branchProb: 0.08, growthSpeed: 2.5, wiggle: 0.6,
+        deathRate: 0.01, tipDeath: 0.03, competition: 0.2,
+        sigma: 0.02, avoidance: 0.3, tropism: 0.5, nSeeds: 1
+    },
+    coral: {
+        branchProb: 0.03, growthSpeed: 0.8, wiggle: 0.35,
+        deathRate: 0.002, tipDeath: 0.005, competition: 0.6,
+        sigma: 0.15, avoidance: 1.2, tropism: -0.2, nSeeds: 3
+    },
+    fungal: {
+        branchProb: 0.04, growthSpeed: 1.0, wiggle: 0.5,
+        deathRate: 0.001, tipDeath: 0.02, competition: 0.7,
+        sigma: 0.03, avoidance: 0.4, tropism: 0.1, nSeeds: 2
+    }
+};
+
+class GrowingTip {
+    constructor(x, y, angle, parent = null, generation = 0) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.parent = parent;
+        this.generation = generation;
+        this.energy = 1.0;
+        this.age = 0;
+        this.alive = true;
+        this.id = GrowingTip.nextId++;
+    }
+    static nextId = 0;
+}
+
+class Branch {
+    constructor(x1, y1, x2, y2, thickness = 1.0, generation = 0) {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.thickness = thickness;
+        this.generation = generation;
+        this.age = 0;
+        this.alive = true;
+    }
+}
+
+class MorphogenesisSimulator {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.gridSize = 128;
+        this.cellSize = width / this.gridSize;
+        
+        // Spatial grid for collision/density
+        this.density = new Float32Array(this.gridSize * this.gridSize);
+        this.nutrient = new Float32Array(this.gridSize * this.gridSize);
+        
+        // Growing structures
+        this.tips = [];
+        this.branches = [];
+        this.deadCount = 0;
+        
+        // Parameters
+        this.branchProb = 0.02;
+        this.growthSpeed = 1.5;
+        this.wiggle = 0.3;
+        this.deathRate = 0.005;
+        this.tipDeath = 0.01;
+        this.competition = 0.3;
+        this.sigma = 0.08;
+        this.avoidance = 0.8;
+        this.tropism = 0;  // positive = toward nutrients, negative = away
+        this.nSeeds = 1;
+        
+        this.totalEnergy = 100;
+        this.maxEnergy = 100;
+        
+        this.iteration = 0;
+        this.reset();
+    }
+    
+    gridIdx(x, y) {
+        const gx = Math.floor(x / this.cellSize);
+        const gy = Math.floor(y / this.cellSize);
+        if (gx < 0 || gx >= this.gridSize || gy < 0 || gy >= this.gridSize) return -1;
+        return gy * this.gridSize + gx;
+    }
+    
+    reset() {
+        this.tips = [];
+        this.branches = [];
+        this.density.fill(0);
+        this.nutrient.fill(0);
+        this.deadCount = 0;
+        this.totalEnergy = this.maxEnergy;
+        this.iteration = 0;
+        GrowingTip.nextId = 0;
+        
+        // Create seed points
+        const cx = this.width / 2;
+        const cy = this.height / 2;
+        
+        for (let i = 0; i < this.nSeeds; i++) {
+            const angle = (i / this.nSeeds) * Math.PI * 2 + Math.random() * 0.5;
+            const dist = this.nSeeds > 1 ? 50 : 0;
+            const x = cx + Math.cos(angle) * dist;
+            const y = cy + Math.sin(angle) * dist;
+            
+            // Create multiple initial tips radiating outward
+            const nInitialTips = 4 + Math.floor(Math.random() * 3);
+            for (let j = 0; j < nInitialTips; j++) {
+                const tipAngle = (j / nInitialTips) * Math.PI * 2 + Math.random() * 0.3;
+                this.tips.push(new GrowingTip(x, y, tipAngle, null, 0));
+            }
+            
+            // Mark density at seed
+            const idx = this.gridIdx(x, y);
+            if (idx >= 0) this.density[idx] = 1;
+        }
+        
+        // Add some initial nutrient gradient (optional)
+        this.addNutrientSource(this.width * 0.2, this.height * 0.2, 30);
+        this.addNutrientSource(this.width * 0.8, this.height * 0.8, 30);
+    }
+    
+    addNutrientSource(x, y, radius = 20) {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist <= radius) {
+                    const idx = this.gridIdx(x + dx * this.cellSize, y + dy * this.cellSize);
+                    if (idx >= 0) {
+                        this.nutrient[idx] += 0.5 * (1 - dist / radius);
+                    }
+                }
+            }
+        }
+    }
+    
+    getDensityAt(x, y) {
+        const idx = this.gridIdx(x, y);
+        return idx >= 0 ? this.density[idx] : 1;
+    }
+    
+    getNutrientAt(x, y) {
+        const idx = this.gridIdx(x, y);
+        return idx >= 0 ? this.nutrient[idx] : 0;
+    }
+    
+    getNutrientGradient(x, y) {
+        const d = this.cellSize;
+        const n = this.getNutrientAt(x, y);
+        const nx = (this.getNutrientAt(x + d, y) - this.getNutrientAt(x - d, y)) / (2 * d);
+        const ny = (this.getNutrientAt(x, y + d) - this.getNutrientAt(x, y - d)) / (2 * d);
+        return { x: nx, y: ny, mag: Math.sqrt(nx * nx + ny * ny) + 0.001 };
+    }
+    
+    getDensityGradient(x, y) {
+        const d = this.cellSize;
+        const dx = (this.getDensityAt(x + d, y) - this.getDensityAt(x - d, y)) / (2 * d);
+        const dy = (this.getDensityAt(x, y + d) - this.getDensityAt(x, y - d)) / (2 * d);
+        return { x: dx, y: dy, mag: Math.sqrt(dx * dx + dy * dy) + 0.001 };
+    }
+    
+    step() {
+        // Energy regeneration (slow)
+        this.totalEnergy = Math.min(this.maxEnergy, this.totalEnergy + 0.1);
+        
+        // Nutrient diffusion and decay
+        this.diffuseNutrients();
+        
+        // Process tips
+        const newTips = [];
+        const newBranches = [];
+        
+        for (const tip of this.tips) {
+            if (!tip.alive) continue;
+            
+            tip.age++;
+            
+            // === DEATH CONDITIONS ===
+            
+            // 1. Random tip death (increases with generation)
+            const deathProb = this.tipDeath * (1 + tip.generation * 0.2);
+            if (Math.random() < deathProb) {
+                tip.alive = false;
+                this.deadCount++;
+                continue;
+            }
+            
+            // 2. Out of bounds
+            if (tip.x < 10 || tip.x > this.width - 10 || 
+                tip.y < 10 || tip.y > this.height - 10) {
+                tip.alive = false;
+                this.deadCount++;
+                continue;
+            }
+            
+            // 3. Collision / high density (self-avoidance)
+            const localDensity = this.getDensityAt(tip.x, tip.y);
+            if (localDensity > 0.8 && Math.random() < this.avoidance * 0.1) {
+                tip.alive = false;
+                this.deadCount++;
+                continue;
+            }
+            
+            // 4. Competition - tips in crowded areas die faster
+            if (localDensity > 0.3 && Math.random() < this.competition * localDensity * 0.05) {
+                tip.alive = false;
+                this.deadCount++;
+                continue;
+            }
+            
+            // 5. Energy exhaustion
+            if (this.totalEnergy < 1) {
+                tip.alive = false;
+                this.deadCount++;
+                continue;
+            }
+            
+            // === GROWTH ===
+            
+            // Consume energy
+            const energyCost = 0.1 * (1 + tip.generation * 0.1);
+            this.totalEnergy -= energyCost;
+            
+            // Calculate growth direction
+            let angle = tip.angle;
+            
+            // Add wiggle (randomness)
+            angle += (Math.random() - 0.5) * this.wiggle;
+            
+            // Tropism - bias toward/away from nutrients
+            if (Math.abs(this.tropism) > 0.01) {
+                const nutGrad = this.getNutrientGradient(tip.x, tip.y);
+                if (nutGrad.mag > 0.001) {
+                    const nutAngle = Math.atan2(nutGrad.y, nutGrad.x);
+                    let angleDiff = nutAngle - angle;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    angle += angleDiff * this.tropism * 0.3;
+                }
+            }
+            
+            // Avoidance - bias away from high density
+            if (this.avoidance > 0.01) {
+                const densGrad = this.getDensityGradient(tip.x, tip.y);
+                if (densGrad.mag > 0.001) {
+                    const avoidAngle = Math.atan2(-densGrad.y, -densGrad.x);
+                    let angleDiff = avoidAngle - angle;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    angle += angleDiff * this.avoidance * localDensity * 0.2;
+                }
+            }
+            
+            // Move tip
+            const speed = this.growthSpeed * (1 - localDensity * 0.5);
+            const oldX = tip.x;
+            const oldY = tip.y;
+            tip.x += Math.cos(angle) * speed * this.cellSize * 0.5;
+            tip.y += Math.sin(angle) * speed * this.cellSize * 0.5;
+            tip.angle = angle;
+            
+            // Create branch segment
+            const thickness = Math.max(0.3, 1 - tip.generation * 0.1);
+            newBranches.push(new Branch(oldX, oldY, tip.x, tip.y, thickness, tip.generation));
+            
+            // Update density
+            const idx = this.gridIdx(tip.x, tip.y);
+            if (idx >= 0) {
+                this.density[idx] = Math.min(1, this.density[idx] + 0.3);
+            }
+            
+            // === BRANCHING ===
+            
+            // Branch probability decreases with generation and local density
+            const branchMod = Math.max(0, 1 - tip.generation * 0.15) * (1 - localDensity);
+            if (Math.random() < this.branchProb * branchMod && this.totalEnergy > 5) {
+                // Create new branch at angle
+                const branchAngle = angle + (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random() * 0.6);
+                newTips.push(new GrowingTip(tip.x, tip.y, branchAngle, tip, tip.generation + 1));
+            }
+        }
+        
+        // Add new tips
+        this.tips.push(...newTips);
+        
+        // Add new branches
+        this.branches.push(...newBranches);
+        
+        // Remove dead tips
+        this.tips = this.tips.filter(t => t.alive);
+        
+        // Branch decay (old branches thin and die)
+        for (const branch of this.branches) {
+            branch.age++;
+            if (Math.random() < this.deathRate) {
+                branch.thickness *= 0.95;
+                if (branch.thickness < 0.1) {
+                    branch.alive = false;
+                }
+            }
+        }
+        
+        // Remove dead branches
+        const beforeCount = this.branches.length;
+        this.branches = this.branches.filter(b => b.alive);
+        this.deadCount += beforeCount - this.branches.length;
+        
+        // Surface tension - smooth the density field
+        if (this.sigma > 0.01) {
+            this.smoothDensity();
+        }
+        
+        // Density decay
+        for (let i = 0; i < this.density.length; i++) {
+            this.density[i] *= 0.999;
+        }
+        
+        this.iteration++;
+    }
+    
+    diffuseNutrients() {
+        const s = this.gridSize;
+        const newNutrient = new Float32Array(s * s);
+        
+        for (let y = 1; y < s - 1; y++) {
+            for (let x = 1; x < s - 1; x++) {
+                const i = y * s + x;
+                const lap = this.nutrient[i - 1] + this.nutrient[i + 1] +
+                           this.nutrient[i - s] + this.nutrient[i + s] - 4 * this.nutrient[i];
+                newNutrient[i] = this.nutrient[i] + 0.1 * lap;
+                
+                // Consume nutrient where there's density
+                newNutrient[i] -= this.density[i] * 0.01;
+                if (newNutrient[i] < 0) newNutrient[i] = 0;
+            }
+        }
+        
+        this.nutrient = newNutrient;
+    }
+    
+    smoothDensity() {
+        const s = this.gridSize;
+        const newDensity = new Float32Array(s * s);
+        
+        for (let y = 1; y < s - 1; y++) {
+            for (let x = 1; x < s - 1; x++) {
+                const i = y * s + x;
+                const lap = this.density[i - 1] + this.density[i + 1] +
+                           this.density[i - s] + this.density[i + s] - 4 * this.density[i];
+                newDensity[i] = this.density[i] + this.sigma * lap;
+            }
+        }
+        
+        this.density = newDensity;
+    }
+    
+    getMetrics() {
+        const aliveTips = this.tips.filter(t => t.alive).length;
+        const aliveBranches = this.branches.filter(b => b.alive).length;
+        const maxGen = this.tips.reduce((max, t) => Math.max(max, t.generation), 0);
+        
+        // Count junctions (branch points)
+        const junctionMap = new Map();
+        for (const b of this.branches) {
+            const key = `${Math.round(b.x1)},${Math.round(b.y1)}`;
+            junctionMap.set(key, (junctionMap.get(key) || 0) + 1);
+        }
+        const junctions = [...junctionMap.values()].filter(c => c >= 2).length;
+        
+        const totalMass = this.density.reduce((a, b) => a + b, 0);
+        
+        return {
+            tips: aliveTips,
+            branches: aliveBranches,
+            junctions,
+            maxDepth: maxGen,
+            deaths: this.deadCount,
+            mass: totalMass.toFixed(0),
+            energy: Math.round(this.totalEnergy)
+        };
+    }
+    
+    loadPreset(name) {
+        const p = PRESETS[name];
+        if (p) {
+            Object.assign(this, p);
+            this.reset();
+        }
+    }
+}
+
+// ============================================================================
+// RENDERER
+// ============================================================================
+
+class Renderer {
+    constructor(canvas, sim) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.sim = sim;
+        this.showDensity = false;
+        this.showNutrient = false;
+    }
+    
+    render() {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        
+        // Clear
+        ctx.fillStyle = '#050508';
+        ctx.fillRect(0, 0, w, h);
+        
+        // Draw density field (faint)
+        if (this.showDensity) {
+            this.drawField(this.sim.density, 'rgba(100,150,100,0.3)');
+        }
+        
+        // Draw nutrient field
+        if (this.showNutrient) {
+            this.drawField(this.sim.nutrient, 'rgba(100,100,200,0.4)');
+        }
+        
+        // Draw branches
+        for (const branch of this.sim.branches) {
+            if (!branch.alive) continue;
+            
+            const age = Math.min(branch.age / 200, 1);
+            const gen = Math.min(branch.generation / 8, 1);
+            
+            // Color based on generation and age
+            const r = Math.floor(80 + 120 * (1 - gen) - 30 * age);
+            const g = Math.floor(60 + 140 * (1 - gen) - 20 * age);
+            const b = Math.floor(40 + 60 * (1 - gen));
+            
+            ctx.beginPath();
+            ctx.moveTo(branch.x1, branch.y1);
+            ctx.lineTo(branch.x2, branch.y2);
+            ctx.strokeStyle = `rgb(${r},${g},${b})`;
+            ctx.lineWidth = branch.thickness * 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+        
+        // Draw tips (growth points)
+        for (const tip of this.sim.tips) {
+            if (!tip.alive) continue;
+            
+            const brightness = Math.floor(200 + 55 * Math.sin(this.sim.iteration * 0.1));
+            ctx.beginPath();
+            ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgb(${brightness}, ${Math.floor(brightness * 0.9)}, ${Math.floor(brightness * 0.5)})`;
+            ctx.fill();
+        }
+    }
+    
+    drawField(field, color) {
+        const ctx = this.ctx;
+        const s = this.sim.gridSize;
+        const cellW = this.canvas.width / s;
+        const cellH = this.canvas.height / s;
+        
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const v = field[y * s + x];
+                if (v > 0.01) {
+                    ctx.fillStyle = color;
+                    ctx.globalAlpha = Math.min(1, v);
+                    ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+                }
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
+
+const canvas = document.getElementById('mainCanvas');
+const sim = new MorphogenesisSimulator(canvas.width, canvas.height);
+const renderer = new Renderer(canvas, sim);
+
+let paused = false;
+let lastTime = performance.now();
+
+// Slider setup
+const sliders = ['branchProb', 'growthSpeed', 'wiggle', 'deathRate', 'tipDeath', 
+                 'competition', 'sigma', 'avoidance', 'tropism'];
+
+for (const name of sliders) {
+    const slider = document.getElementById(name);
+    const valSpan = document.getElementById(name + 'Val');
+    
+    slider.addEventListener('input', () => {
+        sim[name] = parseFloat(slider.value);
+        valSpan.textContent = parseFloat(slider.value).toFixed(3);
+    });
+}
+
+function updateSlidersFromSim() {
+    for (const name of sliders) {
+        const slider = document.getElementById(name);
+        const valSpan = document.getElementById(name + 'Val');
+        slider.value = sim[name];
+        valSpan.textContent = sim[name].toFixed(3);
+    }
+}
+
+// Buttons
+document.getElementById('playPause').addEventListener('click', function() {
+    paused = !paused;
+    this.textContent = paused ? '▶ Play' : '⏸ Pause';
+    document.getElementById('pauseIndicator').style.display = paused ? 'inline' : 'none';
+});
+
+document.getElementById('reset').addEventListener('click', () => sim.reset());
+document.getElementById('step').addEventListener('click', () => { sim.step(); renderer.render(); updateMetrics(); });
+
+// Presets
+document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        sim.loadPreset(this.dataset.preset);
+        updateSlidersFromSim();
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+// Canvas click - add nutrient
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width * canvas.width;
+    const y = (e.clientY - rect.top) / rect.height * canvas.height;
+    sim.addNutrientSource(x, y, 25);
+});
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+    if (e.key === ' ') { e.preventDefault(); document.getElementById('playPause').click(); }
+    else if (e.key === 'r') document.getElementById('reset').click();
+    else if (e.key === 'd') renderer.showDensity = !renderer.showDensity;
+    else if (e.key === 'n') renderer.showNutrient = !renderer.showNutrient;
+});
+
+function updateMetrics() {
+    const m = sim.getMetrics();
+    document.getElementById('iteration').textContent = sim.iteration;
+    document.getElementById('tipCount').textContent = m.tips;
+    document.getElementById('totalMass').textContent = m.mass;
+    document.getElementById('energy').textContent = m.energy;
+    document.getElementById('branches').textContent = m.branches;
+    document.getElementById('junctions').textContent = m.junctions;
+    document.getElementById('maxDepth').textContent = m.maxDepth;
+    document.getElementById('deaths').textContent = m.deaths;
+    
+    const info = document.getElementById('info');
+    if (m.tips === 0 && m.branches > 10) {
+        info.textContent = '☠️ All tips died. Growth complete or reset to try again.';
+        info.className = 'info warn';
+    } else if (m.energy < 10) {
+        info.textContent = '⚠️ Low energy! Growth slowing...';
+        info.className = 'info warn';
+    } else {
+        info.textContent = 'Click to add nutrients (D: density, N: nutrients)';
+        info.className = 'info';
+    }
+}
+
+function animate() {
+    if (!paused) {
+        sim.step();
+    }
+    
+    renderer.render();
+    
+    if (sim.iteration % 10 === 0) {
+        updateMetrics();
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+// Start
+sim.loadPreset('neuron');
+updateSlidersFromSim();
+animate();
+
+</script>
+</body>
+</html>
