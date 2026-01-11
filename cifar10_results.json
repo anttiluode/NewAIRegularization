@@ -1,0 +1,273 @@
+{
+  "config": {
+    "device": "cuda",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "epochs": 50,
+    "batch_size": 128,
+    "lr": 0.01,
+    "subset": 0,
+    "output": "cifar10_results.json"
+  },
+  "results": {
+    "Baseline": {
+      "final_test": [
+        0.5595,
+        0.5655,
+        0.5609,
+        0.5616,
+        0.5569
+      ],
+      "final_train": [
+        0.9998,
+        0.9999,
+        0.99994,
+        0.99998,
+        0.99948
+      ],
+      "best_test": [
+        0.5608,
+        0.5655,
+        0.5609,
+        0.563,
+        0.5569
+      ],
+      "collapsed": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "L2 (1e-4)": {
+      "final_test": [
+        0.5605,
+        0.5651,
+        0.5697,
+        0.5605,
+        0.5633
+      ],
+      "final_train": [
+        0.99964,
+        0.99898,
+        0.99966,
+        0.99982,
+        0.99976
+      ],
+      "best_test": [
+        0.5661,
+        0.5655,
+        0.5698,
+        0.5663,
+        0.567
+      ],
+      "collapsed": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "L2 (1e-3)": {
+      "final_test": [
+        0.5393,
+        0.5537,
+        0.5502,
+        0.5491,
+        0.5467
+      ],
+      "final_train": [
+        0.85174,
+        0.84794,
+        0.845,
+        0.85142,
+        0.84854
+      ],
+      "best_test": [
+        0.5602,
+        0.5641,
+        0.5561,
+        0.5588,
+        0.5628
+      ],
+      "collapsed": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "Lap (1e-7)": {
+      "final_test": [
+        0.5599,
+        0.5631,
+        0.544,
+        0.5592,
+        0.5652
+      ],
+      "final_train": [
+        0.99988,
+        0.99982,
+        0.9774,
+        0.99992,
+        0.99854
+      ],
+      "best_test": [
+        0.5599,
+        0.5637,
+        0.5504,
+        0.5625,
+        0.5652
+      ],
+      "collapsed": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "Lap (1e-6)": {
+      "final_test": [
+        0.5602,
+        0.569,
+        0.5654,
+        0.5576,
+        0.568
+      ],
+      "final_train": [
+        0.99986,
+        0.9999,
+        0.99996,
+        0.99994,
+        0.99996
+      ],
+      "best_test": [
+        0.5602,
+        0.569,
+        0.5654,
+        0.5615,
+        0.568
+      ],
+      "collapsed": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "Lap (1e-5)": {
+      "final_test": [
+        0.5572,
+        0.5655,
+        0.5616,
+        0.5582,
+        0.5629
+      ],
+      "final_train": [
+        0.99918,
+        0.9992,
+        0.99956,
+        0.99966,
+        0.9984
+      ],
+      "best_test": [
+        0.5626,
+        0.5655,
+        0.5616,
+        0.5625,
+        0.5631
+      ],
+      "collapsed": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "L2+Lap (1e-4, 1e-7)": {
+      "final_test": [
+        0.5634,
+        0.5632,
+        0.5645,
+        0.5605,
+        0.5646
+      ],
+      "final_train": [
+        0.99962,
+        0.99982,
+        0.99956,
+        0.99964,
+        0.99962
+      ],
+      "best_test": [
+        0.5634,
+        0.5662,
+        0.5645,
+        0.5631,
+        0.5665
+      ],
+      "collapsed": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "summary": {
+    "Baseline": {
+      "final_mean": 0.56088,
+      "final_std": 0.002814533709160379,
+      "best_mean": 0.56142,
+      "collapses": 0
+    },
+    "L2 (1e-4)": {
+      "final_mean": 0.56382,
+      "final_std": 0.0034213447648548936,
+      "best_mean": 0.56694,
+      "collapses": 0
+    },
+    "L2 (1e-3)": {
+      "final_mean": 0.5478,
+      "final_std": 0.004810821135731402,
+      "best_mean": 0.5604000000000001,
+      "collapses": 0
+    },
+    "Lap (1e-7)": {
+      "final_mean": 0.55828,
+      "final_std": 0.007463350454052118,
+      "best_mean": 0.56034,
+      "collapses": 0
+    },
+    "Lap (1e-6)": {
+      "final_mean": 0.56404,
+      "final_std": 0.0044351324670182995,
+      "best_mean": 0.56482,
+      "collapses": 0
+    },
+    "Lap (1e-5)": {
+      "final_mean": 0.5610799999999999,
+      "final_std": 0.003048540634467563,
+      "best_mean": 0.5630599999999999,
+      "collapses": 0
+    },
+    "L2+Lap (1e-4, 1e-7)": {
+      "final_mean": 0.56324,
+      "final_std": 0.0014813507349712956,
+      "best_mean": 0.56474,
+      "collapses": 0
+    }
+  }
+}
